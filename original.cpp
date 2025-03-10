@@ -42,13 +42,13 @@ static inline void test(unsigned n) {
 
   struct timeval diff;
   timersub(&finish.ru_utime, &start.ru_utime, &diff);
-  uint64_t time_used = diff.tv_sec * 1000000 + diff.tv_usec;
-  cout << "Time used: " << time_used << " usec\n";
+  double time_used = diff.tv_sec + diff.tv_usec / 1000000.0;
+  cout << "Time used: " << time_used << " s\n";
 
-  uint64_t mem_used = (finish.ru_maxrss - start.ru_maxrss) * 1024;
-  cout << "Memory used: " << mem_used << " bytes\n";
+  double mem_used = (finish.ru_maxrss - start.ru_maxrss) / 1024.0;
+  cout << "Memory used: " << mem_used << " MB\n";
 
-  auto mem_required = n * sizeof(Node);
+  auto mem_required = n * sizeof(Node) / 1024.0 / 1024.0;
   auto overhead = (mem_used - mem_required) * double(100) / mem_used;
   cout << "Overhead: " << std::fixed << std::setw(4) << std::setprecision(1)
        << overhead << "%\n";
