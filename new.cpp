@@ -40,9 +40,12 @@ public:
   char *free_ptr;
 } pool;
 
+static const char poolOverflowMessage[] = "pool exhausted\n";
+
 static void pool_sigsegv_handler(int, siginfo_t *info, void *ucontext) {
   if (info->si_addr == pool.free_ptr) {
-    std::cerr << "pool exhausted\n";
+    write(STDOUT_FILENO, poolOverflowMessage,
+          std::char_traits<char>::length(poolOverflowMessage));
     exit(1);
   }
 }
