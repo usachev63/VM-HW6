@@ -18,6 +18,8 @@ static void get_usage(struct rusage &usage) {
   }
 }
 
+#define PAGE_SIZE 4096
+
 struct Node {
   Node *next;
   unsigned node_id;
@@ -51,6 +53,8 @@ static void pool_sigsegv_handler(int, siginfo_t *info, void *ucontext) {
 
 void MyPool::init(size_t size) {
   pool_size = size;
+  if (auto rem = size % PAGE_SIZE)
+    pool_size += PAGE_SIZE - rem;
   base_ptr = mmap(nullptr, pool_size, PROT_READ | PROT_WRITE | PROT_GROWSDOWN,
                   MAP_PRIVATE | MAP_ANONYMOUS | MAP_GROWSDOWN, -1, 0);
   if (base_ptr == MAP_FAILED) {
