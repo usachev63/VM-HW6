@@ -18,8 +18,6 @@ static void get_usage(struct rusage &usage) {
   }
 }
 
-#define POOL_SIZE (1 * (long)1024 * 1024 * 1024)
-
 struct Node {
   Node *next;
   unsigned node_id;
@@ -29,13 +27,14 @@ class MyPool {
 public:
   MyPool() {}
 
-  void init();
+  void init(size_t size);
 
   // address is 8-aligned
   void *alloc(size_t size);
 
   void free();
 
+  size_t pool_size;
   void *base_ptr;
   char *free_ptr;
 } pool;
@@ -50,15 +49,16 @@ static void pool_sigsegv_handler(int, siginfo_t *info, void *ucontext) {
   }
 }
 
-void MyPool::init() {
-  base_ptr = mmap(nullptr, POOL_SIZE, PROT_READ | PROT_WRITE | PROT_GROWSDOWN,
+void MyPool::init(size_t size) {
+  pool_size = size;
+  base_ptr = mmap(nullptr, pool_size, PROT_READ | PROT_WRITE | PROT_GROWSDOWN,
                   MAP_PRIVATE | MAP_ANONYMOUS | MAP_GROWSDOWN, -1, 0);
   if (base_ptr == MAP_FAILED) {
     std::cerr << "mmap failed: " << strerror(errno) << std::endl;
     std::exit(1);
   }
   std::cerr << "mmap ok " << base_ptr << std::endl;
-  free_ptr = (char *)base_ptr + POOL_SIZE;
+  free_ptr = (char *)base_ptr + pool_size;
 
   struct sigaction act = {0};
   act.sa_sigaction = pool_sigsegv_handler;
@@ -69,7 +69,7 @@ void MyPool::init() {
 void *MyPool::alloc(size_t size) { return free_ptr -= size; }
 
 void MyPool::free() {
-  if (munmap(base_ptr, POOL_SIZE) != 0) {
+  if (munmap(base_ptr, pool_size) != 0) {
     std::cerr << "munmap failed" << std::endl;
     std::exit(1);
   }
@@ -78,7 +78,7 @@ void MyPool::free() {
 }
 
 static inline Node *create_list(unsigned n) {
-  pool.init();
+  pool.init(n * sizeof(Node));
   Node *list = nullptr;
   for (unsigned i = 0; i < n; i++) {
     Node *newList = (Node *)pool.alloc(sizeof(Node));
